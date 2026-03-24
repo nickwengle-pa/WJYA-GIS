@@ -1,0 +1,143 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar {
+  overflow: auto;
+  border-right: 1px solid #d4d4d4;
+  padding: 0.8rem;
+  background: #fafafa;
+}
+
+.sidebar h2 {
+  margin: 0 0 1rem;
+}
+
+.panel-section {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.panel-section h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.panel-section input,
+.panel-section select,
+.panel-section button {
+  width: 100%;
+  padding: 0.45rem;
+}
+
+.panel-section label {
+  display: flex;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
+
+.panel-section label input[type='checkbox'] {
+  width: auto;
+}
+
+.error-text {
+  margin: 0;
+  color: #b00020;
+  font-size: 0.85rem;
+}
+
+.map-panel,
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.parcel-popup {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  min-width: 240px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  transform: translate(-50%, -105%);
+  pointer-events: none;
+  display: none;
+}
+
+.parcel-popup.visible {
+  display: block;
+  pointer-events: auto;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.popup-header button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.parcel-popup dl {
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.parcel-popup dl div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+}
+
+.parcel-popup dt {
+  font-weight: 600;
+}
+
+.mouse-position {
+  background: rgb(255 255 255 / 90%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid #d4d4d4;
+  }
+}
