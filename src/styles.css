@@ -1,0 +1,85 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
+}
+
+#sidebar {
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+}
+
+.sidebar-card {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-card h2,
+.sidebar-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.compact-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.compact-row input,
+.compact-row select,
+.compact-row button {
+  font-size: 0.85rem;
+  padding: 6px;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+}
+
+.result-list li {
+  padding: 4px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-loading {
+  color: #0c5460;
+  font-size: 0.85rem;
+}
+
+.sidebar-error {
+  color: #b00020;
+  font-size: 0.85rem;
+}
+
+#map {
+  background: #dde7f0;
+}
