@@ -10,11 +10,11 @@ const mockFallbackResults = (parcelId: string): ParcelResult[] => [
   {
     id: `mock-${parcelId}`,
     title: parcelId,
-    subtitle: '100 Mockingbird Ln',
+    subtitle: 'Mock Owner',
     attributes: {
-      parcel_id: parcelId,
-      owner_name: 'Mock Owner',
-      site_address: '100 Mockingbird Ln'
+      PARCEL: parcelId,
+      SHORT_NAME: 'Mock Owner',
+      DEED_REF: 'DB 100 PG 200'
     },
     source: 'mock'
   }

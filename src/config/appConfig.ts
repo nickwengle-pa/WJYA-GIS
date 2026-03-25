@@ -54,6 +54,10 @@ const parseSearchProvider = (value: string | undefined, hasSearchUrl: boolean): 
   return hasSearchUrl ? 'ogcApiFeatures' : 'mock';
 };
 
+const searchableParcelField = getEnv('VITE_SEARCHABLE_PARCEL_FIELD', 'PARCEL');
+const ownerNameField = getEnv('VITE_OWNER_NAME_FIELD', 'SHORT_NAME');
+const deedReferenceField = getEnv('VITE_DEED_REFERENCE_FIELD', 'DEED_REF');
+
 const buildSearchConfig = (parcelIdField: string, projection: string): SearchConfig => {
   const searchUrl = getOptionalEnv('VITE_SEARCH_URL');
   const provider = parseSearchProvider(getOptionalEnv('VITE_SEARCH_PROVIDER'), Boolean(searchUrl));
@@ -61,7 +65,7 @@ const buildSearchConfig = (parcelIdField: string, projection: string): SearchCon
   const commonFields = {
     parcelIdField,
     maxResults,
-    resultSubtitleField: 'site_address'
+    resultSubtitleField: ownerNameField
   };
 
   if (provider === 'wfs') {
@@ -90,14 +94,11 @@ const buildSearchConfig = (parcelIdField: string, projection: string): SearchCon
   };
 };
 
-const searchableParcelField = getEnv('VITE_SEARCHABLE_PARCEL_FIELD', 'parcel_id');
 const popupFields: PopupFieldConfig[] = [
   // Replace these with the exact parcel fields exposed by your QGIS project.
-  { field: searchableParcelField, label: 'Parcel ID' },
-  { field: 'owner_name', label: 'Owner' },
-  { field: 'site_address', label: 'Site Address' },
-  { field: 'land_use', label: 'Land Use' },
-  { field: 'acreage', label: 'Acres', format: 'acreage' }
+  { field: searchableParcelField, label: 'Parcel Number' },
+  { field: ownerNameField, label: 'Owner Name' },
+  { field: deedReferenceField, label: 'Deed Reference' }
 ];
 
 const projection = getEnv('VITE_MAP_PROJECTION', 'EPSG:3857');
