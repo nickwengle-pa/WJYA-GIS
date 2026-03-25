@@ -82,7 +82,7 @@ export const buildGetPrintUrl = (
     TEMPLATE: config.printLayoutName,
     FORMAT: 'pdf',
     CRS: 'EPSG:4326',
-    LAYERS: visibleLayerNames.join(','),
-    MAP0: `${minLon},${minLat},${maxLon},${maxLat}`
+    'map0:LAYERS': visibleLayerNames.join(','),
+    'map0:EXTENT': `${minLon},${minLat},${maxLon},${maxLat}`
   });
 };
