@@ -25,7 +25,9 @@ const toAttributeValue = (value: unknown): string | number | null =>
 
 const escapeFilterLiteral = (value: string): string => value.replace(/'/g, "''");
 
-const buildSearchUrl = (parcelId: string, search: SearchConfig): string => {
+const buildSearchUrl = (parcelId: string, config: AppConfig): string => {
+  const { search } = config;
+
   if (search.kind === 'ogcApiFeatures') {
     return appendQueryParams(search.url, {
       limit: search.maxResults,
@@ -38,11 +40,12 @@ const buildSearchUrl = (parcelId: string, search: SearchConfig): string => {
       service: 'WFS',
       version: search.version,
       request: 'GetFeature',
-      typeNames: search.typeName,
+      MAP: config.qgisProjectName,
+      TYPENAME: search.typeName,
       outputFormat: search.outputFormat,
-      srsName: search.srsName,
-      count: search.maxResults,
-      CQL_FILTER: `${search.parcelIdField}='${escapeFilterLiteral(parcelId)}'`
+      SRSNAME: search.srsName,
+      MAXFEATURES: search.maxResults,
+      EXP_FILTER: `"${search.parcelIdField}"='${escapeFilterLiteral(parcelId)}'`
     });
   }
 
@@ -73,7 +76,7 @@ export const searchParcels = async (parcelId: string, config: AppConfig): Promis
     return mockFallbackResults(parcelId);
   }
 
-  const response = await fetch(buildSearchUrl(parcelId, config.search));
+  const response = await fetch(buildSearchUrl(parcelId, config));
 
   if (!response.ok) {
     throw new Error(`Search request failed: ${response.status} ${response.statusText}`);

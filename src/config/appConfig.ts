@@ -69,7 +69,7 @@ const buildSearchConfig = (parcelIdField: string, projection: string): SearchCon
       kind: 'wfs',
       url: getEnv('VITE_SEARCH_URL'),
       typeName: getEnv('VITE_SEARCH_TYPENAME'),
-      version: getEnv('VITE_SEARCH_WFS_VERSION', '2.0.0'),
+      version: getEnv('VITE_SEARCH_WFS_VERSION', '1.1.0'),
       outputFormat: getEnv('VITE_SEARCH_WFS_OUTPUT_FORMAT', 'application/json'),
       srsName: getEnv('VITE_SEARCH_WFS_SRS_NAME', projection),
       ...commonFields

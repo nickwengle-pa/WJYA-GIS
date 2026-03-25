@@ -75,7 +75,7 @@ Popup fields are configured in `src/config/appConfig.ts`.
 `src/services/parcelSearch.ts` selects a provider from config:
 
 - `ogcApiFeatures` builds a simple `filter` request against the configured items endpoint.
-- `wfs` builds a `GetFeature` request using `CQL_FILTER`.
+- `wfs` builds a QGIS Server `GetFeature` request using `MAP`, `TYPENAME`, `MAXFEATURES`, and `EXP_FILTER`.
 - `mock` returns sample results without network dependency.
 
 ## Build
