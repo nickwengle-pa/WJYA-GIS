@@ -10,12 +10,15 @@ export interface QgisFeatureInfoResponse {
   }>;
 }
 
-export interface OgcApiFeaturesResponse {
+export interface GeoJsonFeatureRecord {
+  id?: string | number;
+  type?: string;
+  geometry?: GeoJSONGeometry;
+  properties: Record<string, unknown>;
+  bbox?: [number, number, number, number];
+}
+
+export interface GeoJsonFeatureCollectionResponse {
   type: string;
-  features: Array<{
-    id?: string;
-    geometry?: GeoJSONGeometry;
-    properties: Record<string, unknown>;
-    bbox?: [number, number, number, number];
-  }>;
+  features: GeoJsonFeatureRecord[];
 }

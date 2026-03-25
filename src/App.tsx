@@ -1,32 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
 import ParcelPopup from './components/ParcelPopup';
+import { appConfig } from './config/appConfig';
+import { getDefaultLayerVisibility } from './config/layerRegistry';
 import { useMap } from './hooks/useMap';
 import { useParcelSearch } from './hooks/useParcelSearch';
 import { useParcelIdentify } from './hooks/useParcelIdentify';
 import { usePrint } from './hooks/usePrint';
-import { appConfig } from './services/config';
-import type { BasemapType, LayerVisibilityState } from './types/config';
-
-const defaultVisibility: LayerVisibilityState = {
-  aerialVisible: false,
-  parcelsVisible: true,
-  parcelLabelsVisible: false,
-  externalWmsVisible: false
-};
+import type { BasemapId, LayerVisibilityState } from './types/config';
 
 const App = () => {
-  const [basemap, setBasemap] = useState<BasemapType>('osm');
-  const [visibility, setVisibility] = useState<LayerVisibilityState>(defaultVisibility);
+  const [basemapId, setBasemapId] = useState<BasemapId>(appConfig.defaultBasemapId);
+  const [visibility, setVisibility] = useState<LayerVisibilityState>(() => getDefaultLayerVisibility(appConfig.operationalLayers));
 
-  const config = useMemo(() => appConfig, []);
-  const { map, mapContainerRef } = useMap(config, basemap, visibility);
+  const { map, mapContainerRef, isMapReady } = useMap(appConfig, basemapId, visibility);
 
-  const { runSearch, searching, error: searchError } = useParcelSearch(map, config);
-  const { popup, clearPopup } = useParcelIdentify(map, config);
-  const { runPrint, printing } = usePrint(map, config, visibility);
+  const { results, runSearch, zoomToResult, searching, status: searchStatus, error: searchError, lastQuery } = useParcelSearch(
+    map,
+    appConfig
+  );
+  const { popup, clearPopup, identifying, error: identifyError } = useParcelIdentify(map, appConfig);
+  const { runPrint, printing, canPrint, error: printError } = usePrint(map, appConfig, visibility);
 
   const handleResetView = () => {
     if (!map) {
@@ -34,8 +30,8 @@ const App = () => {
     }
 
     map.getView().animate({
-      center: fromLonLat(config.initialCenter),
-      zoom: config.initialZoom,
+      center: fromLonLat(appConfig.initialCenter),
+      zoom: appConfig.initialZoom,
       duration: 300
     });
   };
@@ -43,19 +39,33 @@ const App = () => {
   return (
     <div className="app-shell">
       <Sidebar
-        basemap={basemap}
-        onBasemapChange={setBasemap}
+        title={appConfig.appTitle}
+        subtitle={appConfig.appSubtitle}
+        basemaps={appConfig.basemaps}
+        basemapId={basemapId}
+        onBasemapChange={setBasemapId}
+        layers={appConfig.operationalLayers}
         visibility={visibility}
         onVisibilityChange={(next) => setVisibility((current) => ({ ...current, ...next }))}
         onSearch={runSearch}
+        onSelectSearchResult={zoomToResult}
+        searchProvider={appConfig.search.kind}
+        searchResults={results}
+        searchStatus={searchStatus}
+        lastSearchQuery={lastQuery}
         searching={searching}
         searchError={searchError}
+        mapReady={isMapReady}
+        identifying={identifying}
+        identifyError={identifyError}
         onPrint={runPrint}
         printing={printing}
+        canPrint={canPrint}
+        printError={printError}
         onResetView={handleResetView}
       />
       <main className="map-panel">
-        <MapView mapContainerRef={mapContainerRef} />
+        <MapView mapContainerRef={mapContainerRef} isMapReady={isMapReady} />
         <ParcelPopup map={map} popup={popup} onClose={clearPopup} />
       </main>
     </div>

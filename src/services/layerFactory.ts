@@ -1,10 +1,12 @@
+import type BaseLayer from 'ol/layer/Base';
 import TileLayer from 'ol/layer/Tile';
 import ImageLayer from 'ol/layer/Image';
 import XYZ from 'ol/source/XYZ';
 import OSM from 'ol/source/OSM';
 import ImageWMS from 'ol/source/ImageWMS';
 import TileWMS from 'ol/source/TileWMS';
-import type { AppConfig } from '../types/config';
+import type { AppConfig, BasemapLayerConfig, OperationalLayerConfig } from '../types/config';
+import { isQgisImageWmsLayer, isTileWmsOperationalLayer } from '../config/layerRegistry';
 
 const buildQgisMapUrl = (config: AppConfig): string => {
   const url = new URL(config.qgisBaseUrl);
@@ -12,89 +14,68 @@ const buildQgisMapUrl = (config: AppConfig): string => {
   return url.toString();
 };
 
-export const createBasemapLayer = (type: 'osm' | 'satellite'): TileLayer<OSM | XYZ> => {
-  if (type === 'satellite') {
+export const createBasemapLayer = (definition: BasemapLayerConfig): TileLayer<OSM | XYZ> => {
+  if (definition.sourceType === 'xyz') {
     return new TileLayer({
       source: new XYZ({
-        // Replace with your organization-approved aerial XYZ source.
-        url: 'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}.jpg'
+        url: definition.url
       }),
-      properties: { id: 'basemap-satellite' }
+      properties: { id: definition.id }
     });
   }
 
   return new TileLayer({
     source: new OSM(),
-    properties: { id: 'basemap-osm' }
+    properties: { id: definition.id }
   });
 };
 
-export const createAerialOverlayLayer = (): TileLayer<XYZ> =>
-  new TileLayer({
-    source: new XYZ({
-      // Optional aerial overlay source.
-      url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png'
-    }),
-    visible: false,
-    opacity: 0.6,
-    properties: { id: 'aerial-overlay' }
-  });
+export const createOperationalLayer = (definition: OperationalLayerConfig, config: AppConfig): BaseLayer => {
+  if (isQgisImageWmsLayer(definition)) {
+    return new ImageLayer({
+      source: new ImageWMS({
+        url: buildQgisMapUrl(config),
+        params: {
+          SERVICE: 'WMS',
+          VERSION: '1.3.0',
+          REQUEST: 'GetMap',
+          FORMAT: 'image/png',
+          TRANSPARENT: true,
+          LAYERS: definition.qgisLayerName
+        },
+        ratio: 1,
+        serverType: 'qgis'
+      }),
+      visible: definition.visibleByDefault,
+      opacity: definition.opacity ?? 1,
+      properties: { id: definition.id }
+    });
+  }
 
-export const createParcelLayer = (config: AppConfig): ImageLayer<ImageWMS> =>
-  new ImageLayer({
-    source: new ImageWMS({
-      url: buildQgisMapUrl(config),
-      params: {
-        SERVICE: 'WMS',
-        VERSION: '1.3.0',
-        REQUEST: 'GetMap',
-        FORMAT: 'image/png',
-        TRANSPARENT: true,
-        LAYERS: config.parcelLayerName
-      },
-      ratio: 1,
-      serverType: 'qgis'
-    }),
-    visible: true,
-    properties: { id: 'parcel-unlabeled' }
-  });
-
-export const createParcelLabelLayer = (config: AppConfig): ImageLayer<ImageWMS> =>
-  new ImageLayer({
-    source: new ImageWMS({
-      url: buildQgisMapUrl(config),
-      params: {
-        SERVICE: 'WMS',
-        VERSION: '1.3.0',
-        REQUEST: 'GetMap',
-        FORMAT: 'image/png',
-        TRANSPARENT: true,
-        LAYERS: config.parcelLabelLayerName
-      },
-      ratio: 1,
-      serverType: 'qgis'
-    }),
-    visible: false,
-    properties: { id: 'parcel-labeled' }
-  });
-
-export const createExternalWmsLayer = (config: AppConfig): TileLayer<TileWMS> | null => {
-  if (!config.externalWmsUrl || !config.externalWmsLayerName) {
-    return null;
+  if (isTileWmsOperationalLayer(definition)) {
+    return new TileLayer({
+      source: new TileWMS({
+        url: definition.url,
+        params: {
+          LAYERS: definition.layerName,
+          TILED: true,
+          FORMAT: 'image/png',
+          TRANSPARENT: true
+        },
+        serverType: definition.serverType
+      }),
+      visible: definition.visibleByDefault,
+      opacity: definition.opacity ?? 1,
+      properties: { id: definition.id }
+    });
   }
 
   return new TileLayer({
-    source: new TileWMS({
-      url: config.externalWmsUrl,
-      params: {
-        LAYERS: config.externalWmsLayerName,
-        TILED: true,
-        FORMAT: 'image/png',
-        TRANSPARENT: true
-      },
-      serverType: 'geoserver'
+    source: new XYZ({
+      url: definition.url
     }),
-    visible: false,
-    properties: { id: 'external-wms' }
+    visible: definition.visibleByDefault,
+    opacity: definition.opacity ?? 1,
+    properties: { id: definition.id }
   });
 };

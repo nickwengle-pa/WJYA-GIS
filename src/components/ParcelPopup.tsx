@@ -56,14 +56,14 @@ const ParcelPopup = ({ map, popup, onClose }: ParcelPopupProps) => {
           <div className="popup-header">
             <strong>{popup.title}</strong>
             <button type="button" onClick={onClose}>
-              ×
+              Close
             </button>
           </div>
           <dl>
-            {Object.entries(popup.attributes).map(([key, value]) => (
-              <div key={key}>
-                <dt>{key}</dt>
-                <dd>{value ?? '—'}</dd>
+            {popup.rows.map((row) => (
+              <div key={row.label}>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
               </div>
             ))}
           </dl>

@@ -5,18 +5,23 @@ import { triggerPrint } from '../services/printService';
 
 export const usePrint = (map: Map | null, config: AppConfig, visibility: LayerVisibilityState) => {
   const [printing, setPrinting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastPrintUrl, setLastPrintUrl] = useState<string | null>(null);
 
   const runPrint = async (): Promise<void> => {
     if (!map) {
+      setError('Wait for the map to finish loading before generating a print.');
       return;
     }
 
     setPrinting(true);
+    setError(null);
 
     try {
       const url = triggerPrint(map, config, visibility);
       setLastPrintUrl(url);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to generate the print request.');
     } finally {
       setPrinting(false);
     }
@@ -24,6 +29,8 @@ export const usePrint = (map: Map | null, config: AppConfig, visibility: LayerVi
 
   return {
     printing,
+    canPrint: Boolean(map),
+    error,
     runPrint,
     lastPrintUrl
   };

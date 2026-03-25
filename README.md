@@ -1,29 +1,17 @@
-# Tax Parcel Viewer Starter (React + Vite + TypeScript + OpenLayers)
+# County Parcel Viewer
 
-Production-oriented starter web GIS app for viewing tax parcels from QGIS Server services.
+Lean React + TypeScript + OpenLayers parcel viewer structured for a realistic county GIS deployment backed by QGIS Server.
 
-## Features
+## What changed
 
-- Full-screen responsive web map layout.
-- Left sidebar with:
-  - basemap selector
-  - aerial imagery toggle
-  - parcel boundary toggle
-  - parcel labels toggle (separate labeled WMS layer)
-  - external WMS overlay toggle
-  - parcel ID search box
-  - print button (11x17 PDF via QGIS GetPrint)
-  - reset view button
-- OpenLayers map with:
-  - scale line
-  - optional mouse coordinates
-  - parcel identify popup via GetFeatureInfo
-- Search abstraction:
-  - uses OGC API Features/WFS-like endpoint when configured
-  - mock fallback when search endpoint is unavailable
-- Environment-based configuration for all important endpoints/layers.
+- Config-driven basemap and layer registry in `src/config/`.
+- Stronger TypeScript models for basemaps, operational layers, popup fields, and pluggable search providers.
+- Sidebar redesigned into compact county-viewer controls with search results and status banners.
+- Map lifecycle kept stable so layer toggles, search, print, and identify do not reinitialize the map.
+- Popup rows formatted from configurable field definitions instead of dumping raw attributes.
+- Search service supports `mock`, `ogcApiFeatures`, or `wfs` modes without adding dependencies.
 
-## Project Structure
+## Project structure
 
 ```text
 src/
@@ -34,98 +22,71 @@ src/
     PrintButton.tsx
     SearchPanel.tsx
     Sidebar.tsx
+  config/
+    appConfig.ts
+    layerRegistry.ts
   hooks/
     useMap.ts
     useParcelIdentify.ts
     useParcelSearch.ts
     usePrint.ts
   services/
-    config.ts
     layerFactory.ts
     parcelSearch.ts
+    popupFormatter.ts
     printService.ts
     qgisWms.ts
-    sampleServiceConfig.ts
   types/
     config.ts
     parcel.ts
     qgis.ts
   utils/
-    extent.ts
     url.ts
   App.tsx
   main.tsx
 ```
 
-## Install
+## Environment setup
+
+1. Copy `.env.example` to `.env`.
+2. Replace the sample QGIS Server values with your county values.
+3. Decide which search provider you are using:
+   - `ogcApiFeatures`: recommended when you have an OGC API Features endpoint.
+   - `wfs`: use when your parcel search is exposed as WFS.
+   - `mock`: keeps the UI usable before the real service is wired.
+
+## Layer registry
+
+The operational layers and basemaps are defined in `src/config/layerRegistry.ts`.
+
+- Replace the sample imagery URL with the county-approved imagery service.
+- Keep parcel boundaries and parcel labels as separate QGIS-published layers.
+- Leave the external zoning WMS blank in `.env` if you do not have that overlay yet.
+
+## Popup formatting
+
+Popup fields are configured in `src/config/appConfig.ts`.
+
+- Replace the sample field names with the exact attribute names exposed by your parcel layer.
+- Use the built-in field formats such as `text`, `number`, `currency`, and `acreage`.
+
+## Search providers
+
+`src/services/parcelSearch.ts` selects a provider from config:
+
+- `ogcApiFeatures` builds a simple `filter` request against the configured items endpoint.
+- `wfs` builds a `GetFeature` request using `CQL_FILTER`.
+- `mock` returns sample results without network dependency.
+
+## Build
 
 ```bash
 npm install
-```
-
-## Run (development)
-
-```bash
-npm run dev
-```
-
-## Build (production)
-
-```bash
 npm run build
 ```
 
-## Configure `.env`
-
-1. Copy `.env.example` to `.env`.
-2. Update each variable for your environment:
-   - `VITE_QGIS_BASE_URL`: QGIS server URL (without hardcoded request params).
-   - `VITE_QGIS_PROJECT_NAME`: project path/name used by QGIS Server `MAP` parameter.
-   - `VITE_PARCEL_LAYER_NAME`: unlabeled parcel boundary layer.
-   - `VITE_PARCEL_LABEL_LAYER_NAME`: pre-labeled parcel layer.
-   - `VITE_EXTERNAL_WMS_URL`, `VITE_EXTERNAL_WMS_LAYER_NAME`: optional overlay source.
-   - `VITE_PRINT_LAYOUT_NAME`: print layout name in QGIS project.
-   - `VITE_INITIAL_CENTER`, `VITE_INITIAL_ZOOM`: starting map position.
-   - `VITE_SEARCHABLE_PARCEL_FIELD`: parcel ID field used in search/popup title.
-   - `VITE_IDENTIFY_FIELDS`: comma-separated fields for identify popup.
-   - `VITE_SEARCH_ENDPOINT_URL`: optional OGC API Features / WFS endpoint.
-
-## Expected QGIS Server setup
-
-- Parcel layers must be published in the target QGIS project.
-- Layer names must exactly match configured environment variables.
-- GetFeatureInfo must be enabled for parcel boundary layer.
-- A print layout must exist in the QGIS project with the exact template name in `VITE_PRINT_LAYOUT_NAME`.
-- Print output is requested as `FORMAT=pdf` and uses the current map extent.
-
-## Print layout requirements
-
-- Layout should be configured for **11x17 landscape** in QGIS Desktop.
-- Recommended layout name: `Tax_11x17_Landscape` (or update `.env`).
-- Ensure map item naming and extent behavior in layout match your print workflow.
-
-## Search endpoint expectations
-
-- Prefer OGC API Features endpoint (recommended).
-- Response should include geometry or bbox so the app can zoom to the result.
-- If no search endpoint is configured, app falls back to a mock service abstraction.
-
-## External WMS note
-
-External WMS layers may need to be **cascaded/embedded in the QGIS project** for consistent print support via QGIS GetPrint.
-
-## Next steps for production hardening
-
-1. Add authentication and token refresh handling for protected GIS services.
-2. Add robust error boundary + user notifications.
-3. Implement stronger search filters (exact, partial, owner, address).
-4. Add loading indicators and retry/backoff for unstable services.
-5. Add automated tests (unit + integration + Playwright map smoke tests).
-6. Add centralized logging/telemetry.
-7. Validate/escape all user input and handle non-standard service responses.
-8. Add CI/CD pipeline and environment-specific build configs.
-
 ## Notes
 
-- Basemap/aerial URLs in `layerFactory.ts` are placeholders and should be replaced with organization-approved services.
-- This starter is designed to make endpoint swapping easy through `.env` only.
+- The sample basemap, imagery, and external overlay URLs are placeholders.
+- Comments in `.env.example`, `src/config/appConfig.ts`, and `src/config/layerRegistry.ts` mark the places where real county QGIS values need to go.
+- No extra runtime dependencies were added beyond React and OpenLayers.

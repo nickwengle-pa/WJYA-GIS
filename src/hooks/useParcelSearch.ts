@@ -6,51 +6,72 @@ import type { AppConfig } from '../types/config';
 import type { ParcelResult } from '../types/parcel';
 import { searchParcels } from '../services/parcelSearch';
 
+type SearchStatus = 'idle' | 'loading' | 'success' | 'error';
+
 export const useParcelSearch = (map: Map | null, config: AppConfig) => {
   const [results, setResults] = useState<ParcelResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [status, setStatus] = useState<SearchStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [lastQuery, setLastQuery] = useState('');
+
+  const zoomToResult = (result: ParcelResult) => {
+    if (!map) {
+      return;
+    }
+
+    const geometry = result.geometry ?? (result.bbox ? fromExtent(result.bbox) : undefined);
+    if (!geometry) {
+      return;
+    }
+
+    const feature = new Feature(geometry);
+    map.getView().fit(feature.getGeometry()!.getExtent(), {
+      padding: [40, 40, 40, 40],
+      duration: 400,
+      maxZoom: 19
+    });
+  };
 
   const runSearch = async (parcelId: string): Promise<ParcelResult[]> => {
-    if (!parcelId) {
+    const normalizedParcelId = parcelId.trim();
+    setLastQuery(normalizedParcelId);
+
+    if (!normalizedParcelId) {
       setResults([]);
+      setStatus('idle');
+      setError(null);
       return [];
     }
 
-    setSearching(true);
+    setStatus('loading');
     setError(null);
 
     try {
-      const found = await searchParcels(parcelId, config);
+      const found = await searchParcels(normalizedParcelId, config);
       setResults(found);
+      setStatus('success');
 
-      const first = found[0];
-      if (map && first) {
-        const geometry = first.geometry ?? (first.bbox ? fromExtent(first.bbox) : undefined);
-        if (geometry) {
-          const feature = new Feature(geometry);
-          map.getView().fit(feature.getGeometry()!.getExtent(), {
-            padding: [30, 30, 30, 30],
-            duration: 400,
-            maxZoom: 19
-          });
-        }
+      if (found[0]) {
+        zoomToResult(found[0]);
       }
 
       return found;
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Unknown search error';
+      setResults([]);
+      setStatus('error');
       setError(message);
       return [];
-    } finally {
-      setSearching(false);
     }
   };
 
   return {
     results,
-    searching,
+    searching: status === 'loading',
+    status,
     error,
-    runSearch
+    lastQuery,
+    runSearch,
+    zoomToResult
   };
 };

@@ -2,16 +2,12 @@ import { toLonLat } from 'ol/proj';
 import type Map from 'ol/Map';
 import type { Coordinate } from 'ol/coordinate';
 import type ImageWMS from 'ol/source/ImageWMS';
-import GeoJSON from 'ol/format/GeoJSON';
-import type { GeoJSONFeature } from 'ol/format/GeoJSON';
-import type Feature from 'ol/Feature';
-import type Geometry from 'ol/geom/Geometry';
 import type { AppConfig } from '../types/config';
 import type { IdentifyPopupData } from '../types/parcel';
 import type { QgisFeatureInfoResponse } from '../types/qgis';
+import { getOperationalLayerById, isQgisImageWmsLayer } from '../config/layerRegistry';
+import { buildIdentifyPopup } from './popupFormatter';
 import { appendQueryParams } from '../utils/url';
-
-const geoJsonFormat = new GeoJSON();
 
 export const buildQgisMapBaseUrl = (config: AppConfig): string => {
   const url = new URL(config.qgisBaseUrl);
@@ -32,25 +28,16 @@ export const buildFeatureInfoUrl = (
     return undefined;
   }
 
-  return source.getFeatureInfoUrl(coordinate, resolution, view.getProjection(), {
-    INFO_FORMAT: 'application/json',
-    QUERY_LAYERS: config.parcelLayerName,
-    FEATURE_COUNT: 1
-  });
-};
-
-const pickConfiguredAttributes = (properties: Record<string, unknown>, fields: string[]): Record<string, string | number | null> => {
-  if (fields.length === 0) {
-    return Object.fromEntries(
-      Object.entries(properties).map(([key, value]) => [key, typeof value === 'string' || typeof value === 'number' ? value : null])
-    );
+  const identifyLayer = getOperationalLayerById(config, config.identifyLayerId);
+  if (!identifyLayer || !isQgisImageWmsLayer(identifyLayer)) {
+    return undefined;
   }
 
-  return fields.reduce<Record<string, string | number | null>>((acc, key) => {
-    const value = properties[key];
-    acc[key] = typeof value === 'string' || typeof value === 'number' ? value : null;
-    return acc;
-  }, {});
+  return source.getFeatureInfoUrl(coordinate, resolution, view.getProjection(), {
+    INFO_FORMAT: 'application/json',
+    QUERY_LAYERS: identifyLayer.qgisLayerName,
+    FEATURE_COUNT: 1
+  });
 };
 
 export const fetchParcelIdentify = async (
@@ -70,14 +57,7 @@ export const fetchParcelIdentify = async (
     return null;
   }
 
-  const titleField = config.searchableParcelField;
-  const title = String(feature.properties[titleField] ?? 'Parcel');
-
-  return {
-    title,
-    attributes: pickConfiguredAttributes(feature.properties, config.identifyFields),
-    coordinate: [coordinate[0], coordinate[1]]
-  };
+  return buildIdentifyPopup(feature.properties, coordinate, config.popup);
 };
 
 export const buildGetPrintUrl = (
@@ -105,16 +85,4 @@ export const buildGetPrintUrl = (
     LAYERS: visibleLayerNames.join(','),
     MAP0: `${minLon},${minLat},${maxLon},${maxLat}`
   });
-};
-
-export const parseGeoJsonFeature = (rawFeature: GeoJSONFeature): Feature<Geometry> => {
-  const parsedFeature = geoJsonFormat.readFeature(rawFeature, {
-    featureProjection: 'EPSG:3857'
-  });
-
-  if (Array.isArray(parsedFeature)) {
-    throw new Error('Expected a single GeoJSON feature.');
-  }
-
-  return parsedFeature;
 };

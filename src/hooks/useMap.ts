@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { defaults as defaultControls, ScaleLine, MousePosition } from 'ol/control';
+import type BaseLayer from 'ol/layer/Base';
+import { defaults as defaultControls, MousePosition, ScaleLine } from 'ol/control';
 import { createStringXY } from 'ol/coordinate';
 import { fromLonLat } from 'ol/proj';
-import type { BasemapType, LayerVisibilityState } from '../types/config';
-import type { AppConfig } from '../types/config';
-import {
-  createAerialOverlayLayer,
-  createBasemapLayer,
-  createExternalWmsLayer,
-  createParcelLabelLayer,
-  createParcelLayer
-} from '../services/layerFactory';
+import { getBasemapById, getEnabledOperationalLayers } from '../config/layerRegistry';
+import { createBasemapLayer, createOperationalLayer } from '../services/layerFactory';
+import type { AppConfig, BasemapId, LayerVisibilityState, OperationalLayerId } from '../types/config';
 
-export const useMap = (config: AppConfig, basemap: BasemapType, visibility: LayerVisibilityState) => {
+export const useMap = (config: AppConfig, basemapId: BasemapId, visibility: LayerVisibilityState) => {
   const mapRef = useRef<Map | null>(null);
+  const operationalLayerRefs = useRef<Partial<Record<OperationalLayerId, BaseLayer>>>({});
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [map, setMap] = useState<Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -25,14 +21,16 @@ export const useMap = (config: AppConfig, basemap: BasemapType, visibility: Laye
       return;
     }
 
-    const aerialLayer = createAerialOverlayLayer();
-    const parcelLayer = createParcelLayer(config);
-    const parcelLabelLayer = createParcelLabelLayer(config);
-    const externalWmsLayer = createExternalWmsLayer(config);
+    const initialBasemap = getBasemapById(config, basemapId) ?? config.basemaps[0];
+    const operationalLayers = getEnabledOperationalLayers(config).map((layerDefinition) => {
+      const layer = createOperationalLayer(layerDefinition, config);
+      operationalLayerRefs.current[layerDefinition.id] = layer;
+      return layer;
+    });
 
-    const map = new Map({
+    const nextMap = new Map({
       target: mapContainerRef.current,
-      layers: [createBasemapLayer(basemap), aerialLayer, parcelLayer, parcelLabelLayer, ...(externalWmsLayer ? [externalWmsLayer] : [])],
+      layers: [createBasemapLayer(initialBasemap), ...operationalLayers],
       view: new View({
         center: fromLonLat(config.initialCenter),
         zoom: config.initialZoom,
@@ -49,60 +47,46 @@ export const useMap = (config: AppConfig, basemap: BasemapType, visibility: Laye
       ])
     });
 
-    mapRef.current = map;
-    setMap(map);
+    mapRef.current = nextMap;
+    setMap(nextMap);
     setIsMapReady(true);
 
     return () => {
-      map.setTarget(undefined);
+      nextMap.setTarget(undefined);
       mapRef.current = null;
+      operationalLayerRefs.current = {};
       setMap(null);
       setIsMapReady(false);
     };
   }, [config]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) {
+    const currentMap = mapRef.current;
+    const nextBasemap = getBasemapById(config, basemapId);
+    if (!currentMap || !nextBasemap) {
       return;
     }
 
-    const layers = map.getLayers();
-    const currentBasemapLayer = layers.item(0);
-    const nextBasemapId = basemap === 'satellite' ? 'basemap-satellite' : 'basemap-osm';
-    if (currentBasemapLayer?.get('id') === nextBasemapId) {
+    const layers = currentMap.getLayers();
+    const currentBasemap = layers.item(0);
+    if (currentBasemap?.get('id') === nextBasemap.id) {
       return;
     }
 
-    layers.setAt(0, createBasemapLayer(basemap));
-  }, [basemap]);
+    layers.setAt(0, createBasemapLayer(nextBasemap));
+  }, [basemapId, config]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) {
-      return;
-    }
-
-    map.getLayers().forEach((layer) => {
-      const id = layer.get('id');
-      if (id === 'aerial-overlay') {
-        layer.setVisible(visibility.aerialVisible);
-      }
-      if (id === 'parcel-unlabeled') {
-        layer.setVisible(visibility.parcelsVisible);
-      }
-      if (id === 'parcel-labeled') {
-        layer.setVisible(visibility.parcelLabelsVisible);
-      }
-      if (id === 'external-wms') {
-        layer.setVisible(visibility.externalWmsVisible);
+    getEnabledOperationalLayers(config).forEach((layerDefinition) => {
+      const layer = operationalLayerRefs.current[layerDefinition.id];
+      if (layer) {
+        layer.setVisible(Boolean(visibility[layerDefinition.id]));
       }
     });
-  }, [visibility]);
+  }, [config, visibility]);
 
   return {
     map,
-    mapRef,
     mapContainerRef,
     isMapReady
   };
