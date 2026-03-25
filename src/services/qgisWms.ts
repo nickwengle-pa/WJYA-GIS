@@ -3,6 +3,7 @@ import type Map from 'ol/Map';
 import type { Coordinate } from 'ol/coordinate';
 import type ImageWMS from 'ol/source/ImageWMS';
 import GeoJSON from 'ol/format/GeoJSON';
+import type { GeoJSONFeature } from 'ol/format/GeoJSON';
 import type Feature from 'ol/Feature';
 import type Geometry from 'ol/geom/Geometry';
 import type { AppConfig } from '../types/config';
@@ -85,7 +86,12 @@ export const buildGetPrintUrl = (
   visibleLayerNames: string[]
 ): string => {
   const view = map.getView();
-  const extent = view.calculateExtent(map.getSize());
+  const mapSize = map.getSize();
+  if (!mapSize) {
+    throw new Error('Cannot generate a print URL before the map has a rendered size.');
+  }
+
+  const extent = view.calculateExtent(mapSize);
   const [minLon, minLat] = toLonLat([extent[0], extent[1]], view.getProjection());
   const [maxLon, maxLat] = toLonLat([extent[2], extent[3]], view.getProjection());
 
@@ -101,7 +107,14 @@ export const buildGetPrintUrl = (
   });
 };
 
-export const parseGeoJsonFeature = (rawFeature: GeoJSON.Feature): Feature<Geometry> =>
-  geoJsonFormat.readFeature(rawFeature, {
+export const parseGeoJsonFeature = (rawFeature: GeoJSONFeature): Feature<Geometry> => {
+  const parsedFeature = geoJsonFormat.readFeature(rawFeature, {
     featureProjection: 'EPSG:3857'
   });
+
+  if (Array.isArray(parsedFeature)) {
+    throw new Error('Expected a single GeoJSON feature.');
+  }
+
+  return parsedFeature;
+};

@@ -1,3 +1,5 @@
+import type { GeoJSONGeometry } from 'ol/format/GeoJSON';
+
 export interface QgisFeatureInfoResponse {
   type?: string;
   features?: Array<{
@@ -12,7 +14,7 @@ export interface OgcApiFeaturesResponse {
   type: string;
   features: Array<{
     id?: string;
-    geometry?: GeoJSON.Geometry;
+    geometry?: GeoJSONGeometry;
     properties: Record<string, unknown>;
     bbox?: [number, number, number, number];
   }>;

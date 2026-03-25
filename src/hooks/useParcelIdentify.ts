@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type Map from 'ol/Map';
 import { unByKey } from 'ol/Observable';
+import ImageLayer from 'ol/layer/Image';
 import type { AppConfig } from '../types/config';
 import type { IdentifyPopupData } from '../types/parcel';
 import { buildFeatureInfoUrl, fetchParcelIdentify } from '../services/qgisWms';
@@ -18,14 +19,16 @@ export const useParcelIdentify = (map: Map | null, config: AppConfig) => {
       const parcelLayer = map
         .getLayers()
         .getArray()
-        .find((layer) => layer.get('id') === 'parcel-unlabeled');
+        .find(
+          (layer): layer is ImageLayer<ImageWMS> => layer.get('id') === 'parcel-unlabeled' && layer instanceof ImageLayer
+        );
 
       if (!parcelLayer || !parcelLayer.getVisible()) {
         setPopup(null);
         return;
       }
 
-      const source = parcelLayer.getSource() as ImageWMS | undefined;
+      const source = parcelLayer.getSource();
       if (!source) {
         return;
       }

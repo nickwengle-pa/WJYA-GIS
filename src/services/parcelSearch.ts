@@ -27,7 +27,7 @@ const toParcelResult = (feature: OgcApiFeaturesResponse['features'][number], con
       Object.entries(feature.properties).map(([key, value]) => [key, typeof value === 'string' || typeof value === 'number' ? value : null])
     ),
     geometry: feature.geometry
-      ? format.readFeature({ type: 'Feature', properties: feature.properties, geometry: feature.geometry }, { featureProjection: 'EPSG:3857' }).getGeometry() ?? undefined
+      ? format.readGeometry(feature.geometry, { featureProjection: 'EPSG:3857' }) ?? undefined
       : undefined,
     bbox: feature.bbox
   };

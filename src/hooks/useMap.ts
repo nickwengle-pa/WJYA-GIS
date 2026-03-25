@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { defaults as defaultControls, ScaleLine, MousePosition } from 'ol/control';
@@ -17,9 +17,8 @@ import {
 export const useMap = (config: AppConfig, basemap: BasemapType, visibility: LayerVisibilityState) => {
   const mapRef = useRef<Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const [map, setMap] = useState<Map | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-
-  const baseLayer = useMemo(() => createBasemapLayer(basemap), [basemap]);
 
   useEffect(() => {
     if (!mapContainerRef.current) {
@@ -33,7 +32,7 @@ export const useMap = (config: AppConfig, basemap: BasemapType, visibility: Laye
 
     const map = new Map({
       target: mapContainerRef.current,
-      layers: [baseLayer, aerialLayer, parcelLayer, parcelLabelLayer, ...(externalWmsLayer ? [externalWmsLayer] : [])],
+      layers: [createBasemapLayer(basemap), aerialLayer, parcelLayer, parcelLabelLayer, ...(externalWmsLayer ? [externalWmsLayer] : [])],
       view: new View({
         center: fromLonLat(config.initialCenter),
         zoom: config.initialZoom,
@@ -45,20 +44,38 @@ export const useMap = (config: AppConfig, basemap: BasemapType, visibility: Laye
           coordinateFormat: createStringXY(4),
           projection: 'EPSG:4326',
           className: 'mouse-position',
-          undefinedHTML: '&nbsp;'
+          placeholder: '&nbsp;'
         })
       ])
     });
 
     mapRef.current = map;
+    setMap(map);
     setIsMapReady(true);
 
     return () => {
       map.setTarget(undefined);
       mapRef.current = null;
+      setMap(null);
       setIsMapReady(false);
     };
-  }, [baseLayer, config]);
+  }, [config]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    const layers = map.getLayers();
+    const currentBasemapLayer = layers.item(0);
+    const nextBasemapId = basemap === 'satellite' ? 'basemap-satellite' : 'basemap-osm';
+    if (currentBasemapLayer?.get('id') === nextBasemapId) {
+      return;
+    }
+
+    layers.setAt(0, createBasemapLayer(basemap));
+  }, [basemap]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -84,6 +101,7 @@ export const useMap = (config: AppConfig, basemap: BasemapType, visibility: Laye
   }, [visibility]);
 
   return {
+    map,
     mapRef,
     mapContainerRef,
     isMapReady

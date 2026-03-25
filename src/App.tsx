@@ -22,14 +22,13 @@ const App = () => {
   const [visibility, setVisibility] = useState<LayerVisibilityState>(defaultVisibility);
 
   const config = useMemo(() => appConfig, []);
-  const { mapRef, mapContainerRef } = useMap(config, basemap, visibility);
+  const { map, mapContainerRef } = useMap(config, basemap, visibility);
 
-  const { runSearch, searching, error: searchError } = useParcelSearch(mapRef.current, config);
-  const { popup, clearPopup } = useParcelIdentify(mapRef.current, config);
-  const { runPrint, printing } = usePrint(mapRef.current, config, visibility);
+  const { runSearch, searching, error: searchError } = useParcelSearch(map, config);
+  const { popup, clearPopup } = useParcelIdentify(map, config);
+  const { runPrint, printing } = usePrint(map, config, visibility);
 
   const handleResetView = () => {
-    const map = mapRef.current;
     if (!map) {
       return;
     }
@@ -57,7 +56,7 @@ const App = () => {
       />
       <main className="map-panel">
         <MapView mapContainerRef={mapContainerRef} />
-        <ParcelPopup map={mapRef.current} popup={popup} onClose={clearPopup} />
+        <ParcelPopup map={map} popup={popup} onClose={clearPopup} />
       </main>
     </div>
   );
