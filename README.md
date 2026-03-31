@@ -1,92 +1,86 @@
-# County Parcel Viewer
+# WJYA-GIS - County Parcel Viewer
 
-Lean React + TypeScript + OpenLayers parcel viewer structured for a realistic county GIS deployment backed by QGIS Server.
+Indiana County, PA parcel viewer built on QGIS Server (WMS/WFS) with a React + OpenLayers frontend.
 
-## What changed
+## Quick Start
 
-- Config-driven basemap and layer registry in `src/config/`.
-- Stronger TypeScript models for basemaps, operational layers, popup fields, and pluggable search providers.
-- Sidebar redesigned into compact county-viewer controls with search results and status banners.
-- Map lifecycle kept stable so layer toggles, search, print, and identify do not reinitialize the map.
-- Popup rows formatted from configurable field definitions instead of dumping raw attributes.
-- Search service supports `mock`, `ogcApiFeatures`, or `wfs` modes without adding dependencies.
+### Prerequisites
 
-## Project structure
+- Docker Desktop running
+- PowerShell
 
-```text
-src/
-  components/
-    LayerControls.tsx
-    MapView.tsx
-    ParcelPopup.tsx
-    PrintButton.tsx
-    SearchPanel.tsx
-    Sidebar.tsx
-  config/
-    appConfig.ts
-    layerRegistry.ts
-  hooks/
-    useMap.ts
-    useParcelIdentify.ts
-    useParcelSearch.ts
-    usePrint.ts
-  services/
-    layerFactory.ts
-    parcelSearch.ts
-    popupFormatter.ts
-    printService.ts
-    qgisWms.ts
-  types/
-    config.ts
-    parcel.ts
-    qgis.ts
-  utils/
-    url.ts
-  App.tsx
-  main.tsx
+### 1. Start QGIS Server
+
+```powershell
+docker compose up -d
 ```
 
-## Environment setup
+This starts QGIS Server on port `9090`, serving `PARCELS.qgz` from the configured data volume.
 
-1. Copy `.env.example` to `.env`.
-2. Replace the sample QGIS Server values with your county values.
-3. Decide which search provider you are using:
-   - `ogcApiFeatures`: recommended when you have an OGC API Features endpoint.
-   - `wfs`: use when your parcel search is exposed as WFS.
-   - `mock`: keeps the UI usable before the real service is wired.
+### 2. Start the app
 
-## Layer registry
-
-The operational layers and basemaps are defined in `src/config/layerRegistry.ts`.
-
-- Replace the sample imagery URL with the county-approved imagery service.
-- Keep parcel boundaries and parcel labels as separate QGIS-published layers.
-- Leave the external zoning WMS blank in `.env` if you do not have that overlay yet.
-
-## Popup formatting
-
-Popup fields are configured in `src/config/appConfig.ts`.
-
-- Replace the sample field names with the exact attribute names exposed by your parcel layer.
-- Use the built-in field formats such as `text`, `number`, `currency`, and `acreage`.
-
-## Search providers
-
-`src/services/parcelSearch.ts` selects a provider from config:
-
-- `ogcApiFeatures` builds a simple `filter` request against the configured items endpoint.
-- `wfs` builds a QGIS Server `GetFeature` request using `MAP`, `TYPENAME`, `MAXFEATURES`, and `EXP_FILTER`.
-- `mock` returns sample results without network dependency.
-
-## Build
-
-```bash
-npm install
-npm run build
+```powershell
+& 'workpc\serve-local-viewer.ps1'
 ```
 
-## Notes
+Open `http://localhost:4173` in your browser.
 
-- The sample basemap, imagery, and external overlay URLs are placeholders.
-- Comments in `.env.example`, `src/config/appConfig.ts`, and `src/config/layerRegistry.ts` mark the places where real county QGIS values need to go.
-- No extra runtime dependencies were added beyond React and OpenLayers.
+## Project Structure
+
+```
+WJYA-GIS/
+  docker-compose.yml        # QGIS Server container config
+  app/                      # Built app (parallel copy)
+    app-config.json          # Runtime config
+    index.html
+    assets/
+  workpc/                   # Active served app
+    serve-local-viewer.ps1   # Local dev server with /qgis/ proxy
+    app/
+      app-config.json        # Runtime config
+      index.html
+      assets/
+  HANDOFF.md                # Detailed history of fixes and decisions
+  WORKPC-SETUP.md           # Work PC setup instructions
+  CLAUDE-CODE-PROMPT.md     # Original build prompt
+  test_map.html             # Standalone WMS test page
+```
+
+## Architecture
+
+- **WMS** for parcel map display (fast, server-rendered tiles)
+- **WFS** for search, identify, and selected parcel highlighting
+- **Browser print** of the live map (includes basemaps/imagery)
+- **PowerShell server** proxies `/qgis/` to QGIS Server on `:9090` (avoids CORS)
+
+## Configuration
+
+Runtime config is in `workpc/app/app-config.json`. Key values:
+
+| Key | Current Value |
+|-----|---------------|
+| `VITE_QGIS_BASE_URL` | `/qgis/ows/` |
+| `VITE_PARCEL_LAYER_NAME` | `INDCO_c25527e7_d1da_4237_807c_58698b4cff7d` |
+| `VITE_PARCEL_LABEL_LAYER_NAME` | `INDCO_dead94cf_23dd_4b8f_a147_35cdcea08b4d` |
+| `VITE_SEARCH_TYPENAME` | `INDCO` |
+| `VITE_SEARCH_PROVIDER` | `wfs` |
+
+## User Instructions
+
+1. Open the Parcel Viewer at `http://localhost:4173`
+2. Search by parcel ID, owner name, or deed reference
+3. Click a parcel on the map to see details
+4. Toggle imagery or labels as needed
+5. Click **Print Current Map**, then choose 11x17 Landscape in the browser print dialog
+
+## Data
+
+Parcel data is **not** in this repo. The QGIS project and GeoPackage are mounted into Docker from:
+
+```
+D:\OneDrive - Young & Associates\Documents\parcels\
+  PARCELS.qgz
+  INDCO.gpkg
+```
+
+To change the data path, edit the volume mount in `docker-compose.yml`.

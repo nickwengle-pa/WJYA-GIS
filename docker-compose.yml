@@ -1,0 +1,14 @@
+services:
+  qgis-server:
+    image: qgis/qgis-server:latest
+    container_name: qgis-server
+    ports:
+      - "9090:80"
+    volumes:
+      - "D:/OneDrive - Young & Associates/Documents/parcels:/io/data:ro"
+    environment:
+      QGIS_PROJECT_FILE: /io/data/PARCELS.qgz
+      QGIS_SERVER_LOG_STDERR: "1"
+      QGIS_SERVER_LOG_LEVEL: "2"
+    restart: unless-stopped
+
